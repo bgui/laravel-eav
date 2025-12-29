@@ -14,22 +14,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasTable('eav_translations')) {
-            Schema::create('eav_translations', function (Blueprint $table) {
-                $table->id();
-                $table->unsignedBigInteger('translatable_id');
-                $table->string('translatable_type');
-                $table->string('locale', 10)->index();
-                $table->string('key')->index();
-                $table->text('value')->nullable();
-                
-                // Index for efficient lookups
-                $table->index(['translatable_type', 'translatable_id', 'locale', 'key'], 'eav_translatable_lookup');
-                
-                // Unique constraint to prevent duplicate translations
-                $table->unique(['translatable_type', 'translatable_id', 'locale', 'key'], 'eav_translation_unique');
-            });
-        }
+        Schema::create('eav_translations', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('translatable_id');
+            $table->string('translatable_type');
+            $table->string('locale', 10)->index();
+            $table->string('key')->index();
+            $table->text('value')->nullable();
+
+            // Index for efficient lookups
+            $table->index(['translatable_type', 'translatable_id', 'locale', 'key'], 'eav_translatable_lookup');
+
+            // Unique constraint to prevent duplicate translations
+            $table->unique(['translatable_type', 'translatable_id', 'locale', 'key'], 'eav_translation_unique');
+        });
     }
 
     /**
@@ -40,4 +38,3 @@ return new class extends Migration
         Schema::dropIfExists('eav_translations');
     }
 };
-

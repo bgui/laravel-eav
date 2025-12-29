@@ -8,8 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('attribute_groups')) {
-            Schema::create('attribute_groups', function (Blueprint $table) {
+        Schema::create('attribute_groups', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('module_id')->nullable();
             $table->string('title')->index();
@@ -17,11 +16,9 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->char('language', 2)->default('en');
 
-            if (Schema::hasTable('modules')) {
-                $table->foreign('module_id')->references('id')->on('modules')->cascadeOnDelete()->cascadeOnUpdate();
-            }
-            });
-        }
+            // Foreign key to modules table (optional - only if modules table exists)
+            // Projects can add this foreign key manually if they have a modules table
+        });
     }
 
     public function down(): void
@@ -29,5 +26,3 @@ return new class extends Migration
         Schema::dropIfExists('attribute_groups');
     }
 };
-
-

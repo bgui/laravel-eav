@@ -9,8 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('attributable_attributes')) {
-            Schema::create('attributable_attributes', function (Blueprint $table) {
+        Schema::create('attributable_attributes', function (Blueprint $table) {
             $table->id();
             // Create morph columns manually to control index names
             $table->string('attributable_type');
@@ -48,25 +47,22 @@ return new class extends Migration
             $table->index(['attribute_id', 'value_number'], 'idx_attr_number');
             $table->index(['attribute_id', 'value_date'], 'idx_attr_date');
             $table->index(['attribute_id', 'value_boolean'], 'idx_attr_boolean');
-            });
-            
-            // Add foreign key only if parent table exists
-            if (Schema::hasTable('attributes')) {
-                Schema::table('attributable_attributes', function (Blueprint $table) {
-                    $table->foreign('attribute_id')
-                        ->references('id')
-                        ->on('attributes')
-                        ->onDelete('cascade');
-                });
-            }
 
-            // Create prefix indexes for TEXT columns (MySQL requires key length for TEXT/BLOB columns)
+            $table->foreign('attribute_id')
+                ->references('id')
+                ->on('attributes')
+                ->onDelete('cascade');
+        });
+
+        // Create prefix indexes for TEXT columns (MySQL requires key length for TEXT/BLOB columns)
+        // SQLite doesn't support prefix indexes, so we skip them for SQLite
+        if (DB::connection()->getDriverName() !== 'sqlite') {
             try {
                 DB::statement('CREATE INDEX idx_value_text ON attributable_attributes (value_text(255))');
             } catch (\Exception $e) {
                 // Index might already exist, ignore
             }
-            
+
             try {
                 DB::statement('CREATE INDEX idx_attr_text ON attributable_attributes (attribute_id, value_text(255))');
             } catch (\Exception $e) {

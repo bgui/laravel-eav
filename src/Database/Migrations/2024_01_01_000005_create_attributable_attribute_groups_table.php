@@ -8,8 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('attributable_attribute_groups')) {
-            Schema::create('attributable_attribute_groups', function (Blueprint $table) {
+        Schema::create('attributable_attribute_groups', function (Blueprint $table) {
             $table->id();
             // Create morph columns manually to control index names
             $table->string('attributable_type');
@@ -19,20 +18,14 @@ return new class extends Migration
 
             // Index for morph columns with short name
             $table->index(['attributable_type', 'attributable_id'], 'idx_aag_attributable');
-            
+
             $table->unique(['attributable_type', 'attributable_id', 'attribute_group_id'], 'aag_attr_group_unique');
-            });
-            
-            // Add foreign key only if parent table exists
-            if (Schema::hasTable('attribute_groups')) {
-                Schema::table('attributable_attribute_groups', function (Blueprint $table) {
-                    $table->foreign('attribute_group_id')
-                        ->references('id')
-                        ->on('attribute_groups')
-                        ->onDelete('cascade');
-                });
-            }
-        }
+
+            $table->foreign('attribute_group_id')
+                ->references('id')
+                ->on('attribute_groups')
+                ->onDelete('cascade');
+        });
     }
 
     public function down(): void
@@ -40,5 +33,3 @@ return new class extends Migration
         Schema::dropIfExists('attributable_attribute_groups');
     }
 };
-
-

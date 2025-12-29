@@ -8,8 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('attributes')) {
-            Schema::create('attributes', function (Blueprint $table) {
+        Schema::create('attributes', function (Blueprint $table) {
             $table->id();
             $table->uuid('logical_id')->unique();
             $table->string('title')->index();
@@ -20,8 +19,7 @@ return new class extends Migration
             $table->json('values')->nullable();
             $table->boolean('is_active')->default(true);
             $table->char('language', 2)->default('en');
-            });
-        }
+        });
     }
 
     public function down(): void
