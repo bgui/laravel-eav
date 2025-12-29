@@ -1,0 +1,41 @@
+{
+    "name": "fiachehr/laravel-eav",
+    "description": "A complete Entity-Attribute-Value (EAV) package for Laravel",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Fiachehr Pourmojib",
+            "email": "mailbox@fiachehr.ir"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "illuminate/support": "^11.0",
+        "illuminate/database": "^11.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0",
+        "phpunit/phpunit": "^10.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Fiachehr\\LaravelEav\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Fiachehr\\LaravelEav\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Fiachehr\\LaravelEav\\LaravelEavServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "version": "1.0.0"
+}
