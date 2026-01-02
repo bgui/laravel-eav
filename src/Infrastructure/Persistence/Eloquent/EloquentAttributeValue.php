@@ -16,6 +16,7 @@ class EloquentAttributeValue extends Model
         'attributable_type',
         'attributable_id',
         'attribute_id',
+        'locale',
         'value_text',
         'value_number',
         'value_decimal',
@@ -207,6 +208,25 @@ class EloquentAttributeValue extends Model
     public function scopeWhereAttributableId(Builder $query, int $id): Builder
     {
         return $query->where('attributable_id', $id);
+    }
+
+    /**
+     * Scope: Filter by locale
+     */
+    public function scopeWhereLocale(Builder $query, ?string $locale): Builder
+    {
+        if ($locale === null) {
+            return $query->whereNull('locale');
+        }
+        return $query->where('locale', $locale);
+    }
+
+    /**
+     * Scope: Filter by current locale
+     */
+    public function scopeForCurrentLocale(Builder $query): Builder
+    {
+        return $query->where('locale', app()->getLocale());
     }
 }
 

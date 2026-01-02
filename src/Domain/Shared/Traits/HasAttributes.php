@@ -62,8 +62,12 @@ trait HasAttributes
 
     /**
      * Get attribute value for a specific attribute (by ID or slug).
+     * 
+     * @param string|int $attribute Attribute ID or slug
+     * @param string|null $locale Locale code (defaults to current locale)
+     * @return mixed
      */
-    public function getEavAttributeValue(string|int $attribute): mixed
+    public function getEavAttributeValue(string|int $attribute, ?string $locale = null): mixed
     {
         $attributeId = is_numeric($attribute)
             ? $attribute
@@ -73,9 +77,12 @@ trait HasAttributes
             return null;
         }
 
+        $locale = $locale ?? app()->getLocale();
+        
         $attributeValue = EloquentAttributeValue::where('attributable_type', static::class)
             ->where('attributable_id', $this->getKey())
             ->where('attribute_id', $attributeId)
+            ->where('locale', $locale)
             ->with('attribute')
             ->first();
 
@@ -93,14 +100,51 @@ trait HasAttributes
     /**
      * Get all attribute values as key-value pairs.
      * Keys can be attribute IDs, slugs, or logical IDs.
+     * 
+     * @param string $keyType Type of key to use ('id', 'slug', 'logical_id')
+     * @param string|null $locale Locale code (defaults to current locale). If null, returns all locales grouped by attribute.
+     * @param bool $groupByLocale If true and locale is null, returns values grouped by locale: ['slug' => ['en' => 'value', 'fa' => 'مقدار']]
+     * @return Collection|array
      */
-    public function getEavAttributeValues(string $keyType = 'id'): Collection
+    public function getEavAttributeValues(string $keyType = 'id', ?string $locale = null, bool $groupByLocale = false): Collection|array
     {
-        $values = EloquentAttributeValue::where('attributable_type', static::class)
+        $query = EloquentAttributeValue::where('attributable_type', static::class)
             ->where('attributable_id', $this->getKey())
-            ->with('attribute')
-            ->get();
+            ->with('attribute');
 
+        $currentLocale = app()->getLocale();
+
+        if ($locale !== null) {
+            $query->where('locale', $locale);
+        } elseif (!$groupByLocale) {
+            // For backward compatibility, filter by current locale
+            $query->where('locale', $currentLocale);
+        }
+
+        $values = $query->get();
+
+        // If grouping by locale, return nested array structure
+        if ($groupByLocale && $locale === null) {
+            $grouped = [];
+            foreach ($values as $attributeValue) {
+                $attribute = $attributeValue->attribute;
+                $key = match ($keyType) {
+                    'slug' => $attribute->slug,
+                    'logical_id' => $attribute->logical_id,
+                    default => $attribute->id,
+                };
+                
+                if (!isset($grouped[$key])) {
+                    $grouped[$key] = [];
+                }
+                
+                $valueLocale = $attributeValue->locale ?? $currentLocale;
+                $grouped[$key][$valueLocale] = $attributeValue->getActualValue();
+            }
+            return $grouped;
+        }
+
+        // Return flat structure (backward compatible)
         return $values->mapWithKeys(function ($attributeValue) use ($keyType) {
             $attribute = $attributeValue->attribute;
             $key = match ($keyType) {
@@ -115,20 +159,38 @@ trait HasAttributes
 
     /**
      * Set or update attribute values.
+     * 
+     * Supports locale-based values:
+     * - Simple: ['attribute_slug' => 'value'] - uses current locale
+     * - Locale-based: ['attribute_slug' => ['en' => 'English', 'fa' => 'فارسی']]
      *
-     * @param array<string|int, mixed> $attributeValues Array of [attribute_id/slug => value]
+     * @param array<string|int, mixed> $attributeValues Array of [attribute_id/slug => value] or [attribute_id/slug => [locale => value]]
+     * @param string|null $locale Locale code (if provided, all values will use this locale)
      */
-    public function setEavAttributeValues(array $attributeValues): void
+    public function setEavAttributeValues(array $attributeValues, ?string $locale = null): void
     {
         foreach ($attributeValues as $attribute => $value) {
-            $this->setEavAttributeValue($attribute, $value);
+            // If value is an array with locale keys, process each locale
+            if (is_array($value) && !$this->isSequentialArray($value)) {
+                // This is a locale-based array: ['en' => 'English', 'fa' => 'فارسی']
+                foreach ($value as $valueLocale => $localeValue) {
+                    $this->setEavAttributeValue($attribute, $localeValue, $valueLocale);
+                }
+            } else {
+                // Simple value, use provided locale or current locale
+                $this->setEavAttributeValue($attribute, $value, $locale);
+            }
         }
     }
 
     /**
      * Set a single attribute value.
+     * 
+     * @param string|int $attribute Attribute ID or slug
+     * @param mixed $value Value to set
+     * @param string|null $locale Locale code (defaults to current locale)
      */
-    public function setEavAttributeValue(string|int $attribute, mixed $value): void
+    public function setEavAttributeValue(string|int $attribute, mixed $value, ?string $locale = null): void
     {
         $attributeModel = is_numeric($attribute)
             ? EloquentAttribute::find($attribute)
@@ -138,15 +200,27 @@ trait HasAttributes
             return;
         }
 
+        $locale = $locale ?? app()->getLocale();
+
         $attributeValue = EloquentAttributeValue::firstOrNew([
             'attributable_type' => static::class,
             'attributable_id' => $this->getKey(),
             'attribute_id' => $attributeModel->id,
+            'locale' => $locale,
         ]);
 
         $attributeValue->attribute()->associate($attributeModel);
+        $attributeValue->locale = $locale;
         $attributeValue->setActualValue($value);
         $attributeValue->save();
+    }
+
+    /**
+     * Check if array is sequential (not associative)
+     */
+    private function isSequentialArray(array $array): bool
+    {
+        return array_keys($array) === range(0, count($array) - 1);
     }
 
     /**
