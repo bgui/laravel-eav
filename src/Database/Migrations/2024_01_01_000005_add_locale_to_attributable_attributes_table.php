@@ -14,6 +14,9 @@ return new class extends Migration
             // Update unique constraint to include locale
             $table->dropUnique('unique_attributable_attribute');
             $table->unique(['attributable_type', 'attributable_id', 'attribute_id', 'locale'], 'unique_attributable_attribute_locale');
+            
+            // Add index for locale
+            $table->index('locale', 'idx_locale');
         });
     }
 
@@ -21,6 +24,7 @@ return new class extends Migration
     {
         Schema::table('attributable_attributes', function (Blueprint $table) {
             // Restore original unique constraint
+            $table->dropIndex('idx_locale');
             $table->dropUnique('unique_attributable_attribute_locale');
             $table->unique(['attributable_type', 'attributable_id', 'attribute_id'], 'unique_attributable_attribute');
             
